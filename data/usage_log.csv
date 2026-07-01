@@ -10,3 +10,4 @@ date,tool,environment,task_type,description,result,notes
 2026-06-29,Codex,terminal,coding,Codex session: fixed failing test in Orbit,good,One flaky test remains
 2026-06-30,Qwen Coder Next,Acer GN100,coding,Local test: write unit tests for parser,good,Best local result so far
 2026-07-01,Claude / Fable,browser,coding,Added the add_entry helper script,good,Logged with the new script
+2026-07-01,Ornith-1.0,Acer GN100,coding,"Tried the new web form, with a comma",good,Added from the browser

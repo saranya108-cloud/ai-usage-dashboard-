@@ -25,16 +25,16 @@ The log pages have clickable filter links (by tool, model, or category).
 You can also filter by date in the address bar, for example
 /usage?date=2026-06-30.
 
-To add data, either run the helper script:
+To add data, use the add-entry form at the bottom of each page (the
+usage, benchmark, and daily pages each have one, and the main dashboard
+has one for next actions). You can also run the terminal helper:
 
 ```
 python3 app/add_entry.py
 ```
 
-which asks a few questions and appends a row to the right CSV file, or
-edit the CSV files in data/ directly with any text editor or spreadsheet
-app. Then refresh the browser. Field meanings are documented in
-docs/requirements.md.
+or edit the CSV files in data/ directly with any text editor or
+spreadsheet app. Field meanings are documented in docs/requirements.md.
 
 How to Test
 

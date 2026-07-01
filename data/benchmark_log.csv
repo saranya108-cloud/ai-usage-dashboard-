@@ -9,3 +9,4 @@ date,model,environment,task,pass_fail,score,speed,reliability,notes
 2026-06-30,Qwen Coder Next,Acer GN100,Write unit tests for a parser,pass,8,fast,high,Best local run so far
 2026-06-30,Codex,terminal,Fix a failing test,pass,7,medium,high,Fixed in one session
 2026-07-01,GLM-5.2 cloud,browser,Summarize a changelog,pass,7,fast,high,
+2026-07-01,Ornith-1.0,Acer GN100,Longer coding task,pass,7,slow,medium,
