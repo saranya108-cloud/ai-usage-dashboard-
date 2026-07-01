@@ -1,5 +1,4 @@
 # ai-usage-dashboard
--AI Usage Dashboard
 
 Local dashboard for tracking AI lab activity, model testing, Codex sessions, benchmark results, and project progress.
 
@@ -45,19 +44,30 @@ How to Test
 Check the code compiles and every page renders:
 
 ```
+set -eu
+
 python3 -m py_compile app/dashboard.py app/add_entry.py
 python3 app/dashboard.py &
+server_pid=$!
+cleanup() {
+  kill "$server_pid" 2>/dev/null || true
+  wait "$server_pid" 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
+
 sleep 1
-curl -s http://localhost:8000/ | grep "AI Usage Dashboard"
-curl -s http://localhost:8000/daily | grep "Daily progress"
-curl -s http://localhost:8000/models | grep "Model comparison"
-curl -s http://localhost:8000/usage | grep "Usage log"
-curl -s http://localhost:8000/benchmarks | grep "Benchmark log"
-kill %1
+curl --fail --silent http://localhost:8000/ | grep -q "AI Usage Dashboard"
+curl --fail --silent http://localhost:8000/daily | grep -q "Daily progress"
+curl --fail --silent http://localhost:8000/models | grep -q "Model comparison"
+curl --fail --silent http://localhost:8000/usage | grep -q "Usage log"
+curl --fail --silent http://localhost:8000/benchmarks | grep -q "Benchmark log"
+
+echo "All smoke tests passed."
 ```
 
-Each grep should print a matching line. Or simply run the server and
-click through the five pages in your browser.
+The script stops immediately if a check fails and stops the server when
+it finishes. Or simply run the server and click through the five pages
+in your browser.
 
 Purpose
 

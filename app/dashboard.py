@@ -146,12 +146,22 @@ def make_tile(value, label, small=False):
     )
 
 
+def parse_score(value):
+    """Return a valid 0-10 score, or None for a blank or invalid value."""
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return None
+    return score if 0 <= score <= 10 else None
+
+
 def average_scores(benchmarks):
-    """Return {model name: average score} from rows that have a score."""
+    """Return {model name: average score} from rows with valid scores."""
     scores = {}
     for row in benchmarks:
-        if row.get("model") and row.get("score"):
-            scores.setdefault(row["model"], []).append(float(row["score"]))
+        score = parse_score(row.get("score"))
+        if row.get("model") and score is not None:
+            scores.setdefault(row["model"], []).append(score)
     return {model: sum(vals) / len(vals) for model, vals in scores.items()}
 
 
@@ -374,7 +384,13 @@ def next_actions_list(limit=None):
     actions = read_csv("next_actions.csv")
     if not actions:
         return "<p class='empty'>No next actions yet. Add rows to data/next_actions.csv.</p>"
-    actions.sort(key=lambda a: (a.get("status") == "done", a.get("priority", "")))
+    def numeric_priority(action):
+        try:
+            return int(action.get("priority", ""))
+        except (TypeError, ValueError):
+            return float("inf")
+
+    actions.sort(key=lambda a: (a.get("status") == "done", numeric_priority(a)))
     total = len(actions)
     if limit:
         actions = actions[:limit]
@@ -487,7 +503,11 @@ def models_page(params):
         for model in sorted(by_model):
             runs = by_model[model]
             passed = sum(1 for r in runs if r.get("pass_fail") == "pass")
-            scores = [float(r["score"]) for r in runs if r.get("score")]
+            scores = []
+            for run in runs:
+                score = parse_score(run.get("score"))
+                if score is not None:
+                    scores.append(score)
             avg_score = sum(scores) / len(scores) if scores else 0
             envs = sorted({r.get("environment", "") for r in runs})
             latest = max(runs, key=lambda r: r.get("date", ""))
@@ -614,7 +634,13 @@ class DashboardHandler(BaseHTTPRequestHandler):
         if "date" in fields and not row[fields.index("date")]:
             row[fields.index("date")] = date.today().isoformat()
         if "priority" in fields and not row[fields.index("priority")]:
-            row[fields.index("priority")] = str(len(read_csv(filename)) + 1)
+            priorities = []
+            for existing in read_csv(filename):
+                try:
+                    priorities.append(int(existing.get("priority", "")))
+                except (TypeError, ValueError):
+                    pass
+            row[fields.index("priority")] = str(max(priorities, default=0) + 1)
 
         with open(DATA_DIR / filename, "a", newline="", encoding="utf-8") as f:
             csv.writer(f).writerow(row)

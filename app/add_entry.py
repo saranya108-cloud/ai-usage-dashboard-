@@ -86,11 +86,17 @@ def add_progress():
 
 
 def add_next_action():
-    # Suggest the next free priority number based on how many rows exist.
+    # Suggest a priority after the highest existing numeric priority.
     with open(DATA_DIR / "next_actions.csv", newline="", encoding="utf-8") as f:
         existing = list(csv.DictReader(f))
+    priorities = []
+    for row in existing:
+        try:
+            priorities.append(int(row.get("priority", "")))
+        except (TypeError, ValueError):
+            pass
     row = [
-        ask("Priority (1 = most important)", default=str(len(existing) + 1)),
+        ask("Priority (1 = most important)", default=str(max(priorities, default=0) + 1)),
         ask("Action (the thing to do)"),
         ask("Status (open / done)", default="open"),
     ]
