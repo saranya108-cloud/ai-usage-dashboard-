@@ -33,15 +33,19 @@ has one for next actions). You can also run the terminal helper:
 python3 app/add_entry.py
 ```
 
-or edit the CSV files in data/ directly with any text editor or
-spreadsheet app. Field meanings are documented in docs/requirements.md.
+It asks which log you want to add to (1-4), then one question per
+field, and appends the row to the matching CSV file. Pressing Enter
+accepts the suggested default (today's date, the next priority number).
+
+You can also edit the CSV files in data/ directly with any text editor
+or spreadsheet app. Field meanings are documented in docs/requirements.md.
 
 How to Test
 
 Check the code compiles and every page renders:
 
 ```
-python3 -m py_compile app/dashboard.py
+python3 -m py_compile app/dashboard.py app/add_entry.py
 python3 app/dashboard.py &
 sleep 1
 curl -s http://localhost:8000/ | grep "AI Usage Dashboard"
@@ -81,7 +85,7 @@ Current Models and Tools to Track
 
 Goals
 
-The first version should include:
+The dashboard includes:
 
 1. Dashboard view
 2. Daily progress view
@@ -118,26 +122,23 @@ Rules:
 * Do not use pnpx.
 * Do not use bunx.
 * Do not require cloud services.
-* Do not connect to live accounts or APIs in the first version.
+* Do not connect to live accounts or APIs.
 * Do not modify files outside this repo.
 * Prefer Python standard library when possible.
 * Prefer local CSV or JSON files for storage.
 * Keep the code easy for a beginner to understand.
 
-First Version
+Project Structure
 
-The first version should be local and lightweight.
-
-Preferred structure:
-
-* app/ for dashboard code
-* data/ for CSV or JSON files
+* app/ for dashboard code (dashboard.py serves the pages,
+  add_entry.py adds rows from the terminal)
+* data/ for the CSV files the dashboard reads and writes
 * docs/ for notes and requirements
 * README.md for project overview
 
-Sample Views
+Views
 
-The dashboard should eventually include:
+The dashboard includes:
 
 Main Dashboard
 
