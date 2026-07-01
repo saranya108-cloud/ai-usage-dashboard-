@@ -21,6 +21,10 @@ Pages:
 * /usage for the full usage log
 * /benchmarks for the full benchmark log
 
+The log pages have clickable filter links (by tool, model, or category).
+You can also filter by date in the address bar, for example
+/usage?date=2026-06-30.
+
 To add data, either run the helper script:
 
 ```

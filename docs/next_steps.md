@@ -2,19 +2,20 @@
 
 Small improvements, in order. Do one at a time and keep each one small.
 
-1. **Filter by tool or date.** Add a simple query parameter (for example
-   `/usage?tool=Codex`) so long logs stay readable.
-2. **Weekly summary on the daily view.** Count entries per category per
+1. **Weekly summary on the daily view.** Count entries per category per
    week from data already in daily_progress.csv.
-3. **A tiny bar chart on the model comparison view.** Plain HTML/CSS bars
+2. **A tiny bar chart on the model comparison view.** Plain HTML/CSS bars
    for average score, no chart library.
-4. **Orbit project page.** If Orbit notes outgrow the daily log, give the
+3. **Orbit project page.** If Orbit notes outgrow the daily log, give the
    project its own page fed by a data/orbit.csv.
 
 Already done:
 
 * Add-entry helper script (`app/add_entry.py`) — answer a few questions
   in the terminal and it appends a row to the right CSV file.
+* Filters on the log views — clickable filter rows on /usage (by tool),
+  /benchmarks (by model) and /daily (by category), plus a date parameter
+  on all three (for example /usage?date=2026-06-30).
 
 Things we decided NOT to do (on purpose):
 
