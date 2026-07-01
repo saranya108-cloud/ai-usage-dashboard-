@@ -9,6 +9,7 @@ Stop it with: Ctrl+C
 
 import csv
 import html
+from datetime import date
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlparse
@@ -96,6 +97,38 @@ def make_filter_links(base_path, param, values, selected):
             href = f"{base_path}?{urlencode({param: value})}"
             links.append(f"<a href='{href}'>{esc(value)}</a>")
     return "<p class='filters'>Filter: " + " | ".join(links) + "</p>"
+
+
+def text_input(name, placeholder="", required=False):
+    """Build one text input for a form."""
+    req = " required" if required else ""
+    return f"<input name='{name}' placeholder='{esc(placeholder)}'{req}>"
+
+
+def select_input(name, options):
+    """Build a dropdown for a form."""
+    opts = "".join(f"<option>{esc(o)}</option>" for o in options)
+    return f"<select name='{name}'>{opts}</select>"
+
+
+def date_input(name):
+    """Build a date picker for a form, already set to today."""
+    return f"<input type='date' name='{name}' value='{date.today().isoformat()}'>"
+
+
+def make_form(title, action, rows):
+    """Build a small add-entry form.
+
+    `rows` is a list of (label, input_html) pairs. Submitting posts
+    to `action`, where do_POST appends the row to the right CSV file.
+    """
+    fields = "".join(f"<label>{esc(label)}{inp}</label>" for label, inp in rows)
+    return (
+        f"<h2>{esc(title)}</h2>"
+        f"<form method='post' action='{action}' class='entry-form'>"
+        + fields
+        + "<button type='submit'>Add entry</button></form>"
+    )
 
 
 def make_tile(value, label, small=False):
@@ -254,6 +287,35 @@ def make_page(title, body):
   .empty {{ color: var(--muted); }}
   .filters {{ font-size: 14px; color: var(--ink-2); }}
   .filters a {{ color: var(--ink-2); }}
+  .entry-form {{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px;
+    display: grid;
+    gap: 10px;
+    max-width: 480px;
+    font-size: 14px;
+  }}
+  .entry-form label {{ display: grid; gap: 4px; color: var(--ink-2); }}
+  .entry-form input, .entry-form select {{
+    padding: 6px 8px;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    background: var(--page);
+    color: var(--ink);
+    font: inherit;
+  }}
+  .entry-form button {{
+    justify-self: start;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    background: var(--bar);
+    color: #ffffff;
+    font: inherit;
+    cursor: pointer;
+  }}
   footer {{ padding: 24px; color: var(--muted); font-size: 12px; text-align: center; }}
 </style>
 </head>
@@ -265,7 +327,7 @@ def make_page(title, body):
 <main>
 {body}
 </main>
-<footer>Data lives in the data/ folder. Edit the CSV files and refresh.</footer>
+<footer>Data lives in the data/ folder. Add entries with the form on each page, or edit the CSV files directly.</footer>
 </body>
 </html>"""
 
@@ -313,13 +375,20 @@ def next_actions_list(limit=None):
     if not actions:
         return "<p class='empty'>No next actions yet. Add rows to data/next_actions.csv.</p>"
     actions.sort(key=lambda a: (a.get("status") == "done", a.get("priority", "")))
+    total = len(actions)
     if limit:
         actions = actions[:limit]
     items = []
     for a in actions:
         css = " class='done'" if a.get("status") == "done" else ""
         items.append(f"<li{css}>{esc(a.get('action'))}</li>")
-    return "<ol>" + "".join(items) + "</ol>"
+    note = ""
+    if limit and total > limit:
+        note = (
+            f"<p class='empty'>Showing the top {limit} of {total} actions. "
+            "The full list is in data/next_actions.csv.</p>"
+        )
+    return "<ol>" + "".join(items) + "</ol>" + note
 
 
 def dashboard_page(params):
@@ -365,6 +434,11 @@ def dashboard_page(params):
         + make_table(recent_progress, PROGRESS_COLUMNS)
         + "<h2>Next actions</h2>"
         + next_actions_list(limit=5)
+        + make_form("Add a next action", "/add-action", [
+            ("Action", text_input("action", "The thing to do", required=True)),
+            ("Priority (leave blank for next number)", text_input("priority", "1 = most important")),
+            ("Status", select_input("status", ["open", "done"])),
+        ])
     )
     return make_page("Dashboard", body)
 
@@ -379,6 +453,12 @@ def daily_page(params):
         "<h2>Daily progress</h2>"
         + make_filter_links("/daily", "category", categories, params.get("category"))
         + make_table(rows, PROGRESS_COLUMNS)
+        + make_form("Add a progress note", "/add-progress", [
+            ("Date", date_input("date")),
+            ("Category", select_input("category", ["tested", "fixed", "learned", "completed"])),
+            ("Note", text_input("note", "What happened", required=True)),
+            ("Next action", text_input("next_action", "Optional")),
+        ])
     )
     return make_page("Daily progress", body)
 
@@ -441,6 +521,15 @@ def usage_page(params):
         "<h2>Usage log</h2>"
         + make_filter_links("/usage", "tool", tools, params.get("tool"))
         + make_table(rows, USAGE_COLUMNS)
+        + make_form("Add a usage entry", "/add-usage", [
+            ("Date", date_input("date")),
+            ("Tool or model", text_input("tool", "e.g. ChatGPT, Qwen Coder Next", required=True)),
+            ("Environment", text_input("environment", "e.g. browser, terminal, Acer GN100", required=True)),
+            ("Task type", text_input("task_type", "e.g. coding, research, summarize", required=True)),
+            ("Description", text_input("description", "What you did", required=True)),
+            ("Result", select_input("result", ["good", "ok", "bad"])),
+            ("Notes", text_input("notes", "Optional")),
+        ])
     )
     return make_page("Usage log", body)
 
@@ -455,6 +544,17 @@ def benchmarks_page(params):
         "<h2>Benchmark log</h2>"
         + make_filter_links("/benchmarks", "model", models, params.get("model"))
         + make_table(rows, BENCHMARK_COLUMNS)
+        + make_form("Add a benchmark", "/add-benchmark", [
+            ("Date", date_input("date")),
+            ("Model", text_input("model", "e.g. Ornith-1.0", required=True)),
+            ("Environment", text_input("environment", "e.g. Acer GN100", required=True)),
+            ("Task", text_input("task", "What was tested", required=True)),
+            ("Pass or fail", select_input("pass_fail", ["pass", "fail"])),
+            ("Score (0-10)", "<input type='number' name='score' min='0' max='10' required>"),
+            ("Speed", select_input("speed", ["fast", "medium", "slow"])),
+            ("Reliability", select_input("reliability", ["high", "medium", "low"])),
+            ("Notes", text_input("notes", "Optional")),
+        ])
     )
     return make_page("Benchmark log", body)
 
@@ -469,6 +569,15 @@ PAGES = {
     "/models": models_page,
     "/usage": usage_page,
     "/benchmarks": benchmarks_page,
+}
+
+# For each form: which CSV file to append to, the column order,
+# and which page to send the browser back to afterwards.
+FORMS = {
+    "/add-usage": ("usage_log.csv", ["date", "tool", "environment", "task_type", "description", "result", "notes"], "/usage"),
+    "/add-benchmark": ("benchmark_log.csv", ["date", "model", "environment", "task", "pass_fail", "score", "speed", "reliability", "notes"], "/benchmarks"),
+    "/add-progress": ("daily_progress.csv", ["date", "category", "note", "next_action"], "/daily"),
+    "/add-action": ("next_actions.csv", ["priority", "action", "status"], "/"),
 }
 
 
@@ -487,6 +596,33 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(content)))
         self.end_headers()
         self.wfile.write(content)
+
+    def do_POST(self):
+        form = FORMS.get(self.path)
+        if form is None:
+            self.send_error(404, "Unknown form")
+            return
+        filename, fields, back_to = form
+
+        # The form data arrives in the request body, URL-encoded.
+        length = int(self.headers.get("Content-Length", 0))
+        submitted = parse_qs(self.rfile.read(length).decode("utf-8"))
+        row = [submitted.get(field, [""])[0].strip() for field in fields]
+
+        # Same defaults as the terminal helper: today's date, and the
+        # next free priority number for next actions.
+        if "date" in fields and not row[fields.index("date")]:
+            row[fields.index("date")] = date.today().isoformat()
+        if "priority" in fields and not row[fields.index("priority")]:
+            row[fields.index("priority")] = str(len(read_csv(filename)) + 1)
+
+        with open(DATA_DIR / filename, "a", newline="", encoding="utf-8") as f:
+            csv.writer(f).writerow(row)
+
+        # Redirect back, so refreshing the page does not re-submit.
+        self.send_response(303)
+        self.send_header("Location", back_to)
+        self.end_headers()
 
     def log_message(self, format, *args):
         pass  # keep the terminal quiet while browsing

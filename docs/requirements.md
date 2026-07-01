@@ -78,5 +78,6 @@ Your running to-do list.
 - CSV over JSON: easier to edit by hand and opens in any spreadsheet app.
 - One file per job: app/dashboard.py shows the data, app/add_entry.py
   adds to it. Each reads top to bottom.
-- Two ways to add data: edit the CSV files directly, or run
-  `python3 app/add_entry.py` and answer one question per field.
+- Three ways to add data: the form at the bottom of each dashboard
+  page, the terminal helper (`python3 app/add_entry.py`), or editing
+  the CSV files directly. All three append the same row format.

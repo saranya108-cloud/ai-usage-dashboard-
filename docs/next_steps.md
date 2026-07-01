@@ -9,6 +9,10 @@ Small improvements, in order. Do one at a time and keep each one small.
 
 Already done:
 
+* Browser-based data entry — an add-entry form at the bottom of the
+  usage, benchmark, and daily pages, plus a next-action form on the
+  main dashboard. Rows append to the same CSV files.
+
 * Bar chart on the model comparison view — plain HTML/CSS bars showing
   average benchmark score per model, best first.
 * Richer main dashboard — summary cards (including best-scoring and most
