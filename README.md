@@ -21,9 +21,20 @@ Pages:
 * /usage for the full usage log
 * /benchmarks for the full benchmark log
 
-To add data, edit the CSV files in data/ with any text editor or
-spreadsheet app, then refresh the browser. Field meanings are documented
-in docs/requirements.md.
+The log pages have clickable filter links (by tool, model, or category).
+You can also filter by date in the address bar, for example
+/usage?date=2026-06-30.
+
+To add data, either run the helper script:
+
+```
+python3 app/add_entry.py
+```
+
+which asks a few questions and appends a row to the right CSV file, or
+edit the CSV files in data/ directly with any text editor or spreadsheet
+app. Then refresh the browser. Field meanings are documented in
+docs/requirements.md.
 
 How to Test
 

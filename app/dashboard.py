@@ -11,6 +11,7 @@ import csv
 import html
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlencode, urlparse
 
 PORT = 8000
 
@@ -47,7 +48,10 @@ def make_table(rows, columns):
     both the column order and the heading text.
     """
     if not rows:
-        return "<p class='empty'>No entries yet. Add rows to the CSV file in data/.</p>"
+        return (
+            "<p class='empty'>Nothing to show. Add rows to the CSV file in data/, "
+            "or clear the filter above if one is active.</p>"
+        )
     parts = ["<table><thead><tr>"]
     for _, heading in columns:
         parts.append(f"<th>{esc(heading)}</th>")
@@ -59,6 +63,39 @@ def make_table(rows, columns):
         parts.append("</tr>")
     parts.append("</tbody></table>")
     return "".join(parts)
+
+
+def filter_rows(rows, params, allowed):
+    """Keep only rows that match the filters in the URL.
+
+    `allowed` maps a URL parameter name to the CSV field it filters,
+    e.g. {"tool": "tool", "date": "date"} means ?tool=Codex&date=...
+    Matching ignores upper/lower case.
+    """
+    for param, field in allowed.items():
+        wanted = params.get(param)
+        if wanted:
+            rows = [r for r in rows if (r.get(field) or "").lower() == wanted.lower()]
+    return rows
+
+
+def make_filter_links(base_path, param, values, selected):
+    """Build a row of filter links like: Filter: All | Codex | ChatGPT
+
+    The currently selected value is shown in bold instead of as a link.
+    """
+    links = []
+    if selected:
+        links.append(f"<a href='{base_path}'>All</a>")
+    else:
+        links.append("<strong>All</strong>")
+    for value in values:
+        if selected and value.lower() == selected.lower():
+            links.append(f"<strong>{esc(value)}</strong>")
+        else:
+            href = f"{base_path}?{urlencode({param: value})}"
+            links.append(f"<a href='{href}'>{esc(value)}</a>")
+    return "<p class='filters'>Filter: " + " | ".join(links) + "</p>"
 
 
 def make_tile(value, label):
@@ -165,6 +202,8 @@ def make_page(title, body):
   .fail {{ color: var(--bad); font-weight: 600; }}
   .done {{ color: var(--muted); text-decoration: line-through; }}
   .empty {{ color: var(--muted); }}
+  .filters {{ font-size: 14px; color: var(--ink-2); }}
+  .filters a {{ color: var(--ink-2); }}
   footer {{ padding: 24px; color: var(--muted); font-size: 12px; text-align: center; }}
 </style>
 </head>
@@ -228,7 +267,7 @@ def next_actions_list():
     return "<ol>" + "".join(items) + "</ol>"
 
 
-def dashboard_page():
+def dashboard_page(params):
     """The main overview: stat tiles, recent activity, next actions."""
     usage = read_csv("usage_log.csv")
     benchmarks = read_csv("benchmark_log.csv")
@@ -262,15 +301,21 @@ def dashboard_page():
     return make_page("Dashboard", body)
 
 
-def daily_page():
-    """Daily progress notes, newest day first."""
+def daily_page(params):
+    """Daily progress notes, newest day first. Filter with ?category= or ?date=."""
     progress = read_csv("daily_progress.csv")
-    progress.sort(key=lambda r: r.get("date", ""), reverse=True)
-    body = "<h2>Daily progress</h2>" + make_table(progress, PROGRESS_COLUMNS)
+    categories = sorted({r.get("category", "") for r in progress if r.get("category")})
+    rows = filter_rows(progress, params, {"category": "category", "date": "date"})
+    rows.sort(key=lambda r: r.get("date", ""), reverse=True)
+    body = (
+        "<h2>Daily progress</h2>"
+        + make_filter_links("/daily", "category", categories, params.get("category"))
+        + make_table(rows, PROGRESS_COLUMNS)
+    )
     return make_page("Daily progress", body)
 
 
-def models_page():
+def models_page(params):
     """Compare models using the benchmark log: pass rate and average score."""
     benchmarks = read_csv("benchmark_log.csv")
 
@@ -316,19 +361,31 @@ def models_page():
     return make_page("Model comparison", "".join(parts))
 
 
-def usage_page():
-    """The full usage log, newest first."""
+def usage_page(params):
+    """The usage log, newest first. Filter with ?tool= or ?date=."""
     usage = read_csv("usage_log.csv")
-    usage.sort(key=lambda r: r.get("date", ""), reverse=True)
-    body = "<h2>Usage log</h2>" + make_table(usage, USAGE_COLUMNS)
+    tools = sorted({r.get("tool", "") for r in usage if r.get("tool")})
+    rows = filter_rows(usage, params, {"tool": "tool", "date": "date"})
+    rows.sort(key=lambda r: r.get("date", ""), reverse=True)
+    body = (
+        "<h2>Usage log</h2>"
+        + make_filter_links("/usage", "tool", tools, params.get("tool"))
+        + make_table(rows, USAGE_COLUMNS)
+    )
     return make_page("Usage log", body)
 
 
-def benchmarks_page():
-    """The full benchmark log, newest first."""
+def benchmarks_page(params):
+    """The benchmark log, newest first. Filter with ?model= or ?date=."""
     benchmarks = read_csv("benchmark_log.csv")
-    benchmarks.sort(key=lambda r: r.get("date", ""), reverse=True)
-    body = "<h2>Benchmark log</h2>" + make_table(benchmarks, BENCHMARK_COLUMNS)
+    models = sorted({r.get("model", "") for r in benchmarks if r.get("model")})
+    rows = filter_rows(benchmarks, params, {"model": "model", "date": "date"})
+    rows.sort(key=lambda r: r.get("date", ""), reverse=True)
+    body = (
+        "<h2>Benchmark log</h2>"
+        + make_filter_links("/benchmarks", "model", models, params.get("model"))
+        + make_table(rows, BENCHMARK_COLUMNS)
+    )
     return make_page("Benchmark log", body)
 
 
@@ -347,11 +404,14 @@ PAGES = {
 
 class DashboardHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        page = PAGES.get(self.path)
+        # Split "/usage?tool=Codex" into the path and the filter parameters.
+        url = urlparse(self.path)
+        page = PAGES.get(url.path)
         if page is None:
             self.send_error(404, "Page not found")
             return
-        content = page().encode("utf-8")
+        params = {name: values[0] for name, values in parse_qs(url.query).items()}
+        content = page(params).encode("utf-8")
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(content)))
