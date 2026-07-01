@@ -1,0 +1,11 @@
+date,tool,environment,task_type,description,result,notes
+2026-06-24,ChatGPT,browser,brainstorm,Outlined the Orbit project milestones,good,Helped split Orbit into 4 phases
+2026-06-24,Claude / Fable,browser,coding,Reviewed dashboard repo README,good,Clear constraints agreed
+2026-06-25,Codex,terminal,coding,Codex session: wrote CSV parsing helpers,good,Session lasted about 40 minutes
+2026-06-25,Qwen Coder Next,Acer GN100,coding,Local test: generate a Python sort function,ok,Ran locally with no internet
+2026-06-26,GLM-5.2 cloud,browser,summarize,Summarized Orbit requirements doc,good,Fast but missed one detail
+2026-06-26,Ornith-1.0,Acer GN100,coding,Local test: small refactor task,ok,Slower than Qwen on same prompt
+2026-06-27,ChatGPT,browser,research,Compared local model quantization options,good,Notes saved to docs
+2026-06-28,Claude / Fable,browser,coding,Planned dashboard file structure,good,Kept scope small on purpose
+2026-06-29,Codex,terminal,coding,Codex session: fixed failing test in Orbit,good,One flaky test remains
+2026-06-30,Qwen Coder Next,Acer GN100,coding,Local test: write unit tests for parser,good,Best local result so far
