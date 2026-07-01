@@ -15,9 +15,9 @@ Then open http://localhost:8000 in your browser. Press Ctrl+C to stop.
 
 Pages:
 
-* / for the main dashboard
+* / for the main dashboard (summary cards, recent activity, next actions)
 * /daily for daily progress
-* /models for model comparison
+* /models for model comparison (bar chart of average scores, plus a table)
 * /usage for the full usage log
 * /benchmarks for the full benchmark log
 

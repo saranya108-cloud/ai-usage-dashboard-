@@ -76,6 +76,7 @@ Your running to-do list.
 ## Decisions made
 
 - CSV over JSON: easier to edit by hand and opens in any spreadsheet app.
-- One Python file: easiest to read top to bottom for a beginner.
-- No add-entry script in v1: editing the CSV directly is simple enough.
-  A small helper script is the planned next improvement.
+- One file per job: app/dashboard.py shows the data, app/add_entry.py
+  adds to it. Each reads top to bottom.
+- Two ways to add data: edit the CSV files directly, or run
+  `python3 app/add_entry.py` and answer one question per field.

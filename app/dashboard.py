@@ -98,14 +98,50 @@ def make_filter_links(base_path, param, values, selected):
     return "<p class='filters'>Filter: " + " | ".join(links) + "</p>"
 
 
-def make_tile(value, label):
-    """Build one stat tile (a big number with a label under it)."""
+def make_tile(value, label, small=False):
+    """Build one stat tile (a big value with a label under it).
+
+    Use small=True when the value is a name rather than a number,
+    so long model names fit inside the tile.
+    """
+    css = "tile-value small" if small else "tile-value"
     return (
         "<div class='tile'>"
-        f"<div class='tile-value'>{esc(value)}</div>"
+        f"<div class='{css}'>{esc(value)}</div>"
         f"<div class='tile-label'>{esc(label)}</div>"
         "</div>"
     )
+
+
+def average_scores(benchmarks):
+    """Return {model name: average score} from rows that have a score."""
+    scores = {}
+    for row in benchmarks:
+        if row.get("model") and row.get("score"):
+            scores.setdefault(row["model"], []).append(float(row["score"]))
+    return {model: sum(vals) / len(vals) for model, vals in scores.items()}
+
+
+def make_score_chart(avg_scores):
+    """Build a horizontal bar chart of average scores, best first.
+
+    Plain HTML/CSS: each bar is a div whose width is the score as a
+    percentage of the 0-10 scale. No JavaScript needed.
+    """
+    if not avg_scores:
+        return "<p class='empty'>No scores yet. Add rows to data/benchmark_log.csv.</p>"
+    rows = []
+    for model, score in sorted(avg_scores.items(), key=lambda item: item[1], reverse=True):
+        percent = score / 10 * 100
+        rows.append(
+            "<div class='chart-row'>"
+            f"<div class='chart-label'>{esc(model)}</div>"
+            f"<div class='chart-track'>"
+            f"<div class='chart-bar' style='width:{percent:.0f}%'></div>"
+            f"<span class='chart-value'>{score:.1f}</span>"
+            "</div></div>"
+        )
+    return "<div class='chart'>" + "".join(rows) + "</div>"
 
 
 def make_page(title, body):
@@ -134,6 +170,8 @@ def make_page(title, body):
     --ink-2: #52514e;
     --muted: #898781;
     --line: #e1e0d9;
+    --baseline: #c3c2b7;
+    --bar: #2a78d6;
     --good: #006300;
     --bad: #d03b3b;
   }}
@@ -145,6 +183,8 @@ def make_page(title, body):
       --ink-2: #c3c2b7;
       --muted: #898781;
       --line: #2c2c2a;
+      --baseline: #383835;
+      --bar: #3987e5;
       --good: #0ca30c;
       --bad: #e66767;
     }}
@@ -180,7 +220,17 @@ def make_page(title, body):
     min-width: 130px;
   }}
   .tile-value {{ font-size: 28px; font-weight: 600; }}
+  .tile-value.small {{ font-size: 18px; padding: 5px 0; }}
   .tile-label {{ font-size: 13px; color: var(--ink-2); margin-top: 4px; }}
+  .chart {{ display: grid; gap: 8px; margin: 12px 0 8px; }}
+  .chart-row {{ display: flex; align-items: center; gap: 10px; font-size: 14px; }}
+  .chart-label {{ width: 160px; text-align: right; color: var(--ink-2); flex-shrink: 0; }}
+  .chart-track {{
+    flex: 1; display: flex; align-items: center; gap: 8px;
+    border-left: 2px solid var(--baseline);
+  }}
+  .chart-bar {{ height: 18px; background: var(--bar); border-radius: 0 4px 4px 0; }}
+  .chart-value {{ font-variant-numeric: tabular-nums; }}
   table {{
     border-collapse: collapse;
     width: 100%;
@@ -254,12 +304,17 @@ PROGRESS_COLUMNS = [
 ]
 
 
-def next_actions_list():
-    """Build the next actions list, open items first."""
+def next_actions_list(limit=None):
+    """Build the next actions list, open items first, done items last.
+
+    Pass a limit to show only the first few (used on the main dashboard).
+    """
     actions = read_csv("next_actions.csv")
     if not actions:
         return "<p class='empty'>No next actions yet. Add rows to data/next_actions.csv.</p>"
     actions.sort(key=lambda a: (a.get("status") == "done", a.get("priority", "")))
+    if limit:
+        actions = actions[:limit]
     items = []
     for a in actions:
         css = " class='done'" if a.get("status") == "done" else ""
@@ -274,18 +329,29 @@ def dashboard_page(params):
     progress = read_csv("daily_progress.csv")
     actions = read_csv("next_actions.csv")
 
-    models = sorted({row["tool"] for row in usage if row.get("tool")})
     open_actions = [a for a in actions if a.get("status") != "done"]
+
+    # Best-scoring model = highest average score in the benchmark log.
+    avg = average_scores(benchmarks)
+    best_model = max(avg, key=avg.get) if avg else "none yet"
+
+    # Most recent model tested = the model on the newest benchmark row.
+    if benchmarks:
+        latest_model = max(benchmarks, key=lambda r: r.get("date", "")).get("model", "?")
+    else:
+        latest_model = "none yet"
 
     tiles = (
         make_tile(len(usage), "usage entries")
-        + make_tile(len(benchmarks), "benchmark runs")
-        + make_tile(len(models), "tools tracked")
+        + make_tile(len(benchmarks), "benchmark tests")
+        + make_tile(best_model, "best-scoring model", small=True)
+        + make_tile(latest_model, "most recent model tested", small=True)
         + make_tile(len(open_actions), "open next actions")
     )
 
     # Show the most recent entries first (the CSVs are oldest-first).
     recent_usage = sorted(usage, key=lambda r: r.get("date", ""), reverse=True)[:5]
+    recent_benchmarks = sorted(benchmarks, key=lambda r: r.get("date", ""), reverse=True)[:5]
     recent_progress = sorted(progress, key=lambda r: r.get("date", ""), reverse=True)[:3]
 
     body = (
@@ -293,10 +359,12 @@ def dashboard_page(params):
         f"<div class='tiles'>{tiles}</div>"
         "<h2>Recent usage</h2>"
         + make_table(recent_usage, USAGE_COLUMNS)
+        + "<h2>Recent benchmarks</h2>"
+        + make_table(recent_benchmarks, BENCHMARK_COLUMNS)
         + "<h2>Recent daily progress</h2>"
         + make_table(recent_progress, PROGRESS_COLUMNS)
         + "<h2>Next actions</h2>"
-        + next_actions_list()
+        + next_actions_list(limit=5)
     )
     return make_page("Dashboard", body)
 
@@ -324,7 +392,9 @@ def models_page(params):
     for row in benchmarks:
         by_model.setdefault(row.get("model", "unknown"), []).append(row)
 
-    parts = ["<h2>Model comparison</h2>"]
+    parts = ["<h2>Average benchmark score by model (0-10)</h2>"]
+    parts.append(make_score_chart(average_scores(benchmarks)))
+    parts.append("<h2>Model comparison</h2>")
     if not by_model:
         parts.append("<p class='empty'>No benchmarks yet. Add rows to data/benchmark_log.csv.</p>")
     else:
