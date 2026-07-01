@@ -7,23 +7,21 @@ Small improvements, in order. Do one at a time and keep each one small.
 2. **Orbit project page.** If Orbit notes outgrow the daily log, give the
    project its own page fed by a data/orbit.csv.
 
-Already done:
+Already done (newest first):
 
 * Browser-based data entry — an add-entry form at the bottom of the
   usage, benchmark, and daily pages, plus a next-action form on the
   main dashboard. Rows append to the same CSV files.
-
 * Bar chart on the model comparison view — plain HTML/CSS bars showing
   average benchmark score per model, best first.
 * Richer main dashboard — summary cards (including best-scoring and most
   recently tested model) plus recent usage, benchmark, progress, and
   next-action sections.
-
-* Add-entry helper script (`app/add_entry.py`) — answer a few questions
-  in the terminal and it appends a row to the right CSV file.
 * Filters on the log views — clickable filter rows on /usage (by tool),
   /benchmarks (by model) and /daily (by category), plus a date parameter
   on all three (for example /usage?date=2026-06-30).
+* Add-entry helper script (`app/add_entry.py`) — answer a few questions
+  in the terminal and it appends a row to the right CSV file.
 
 Things we decided NOT to do (on purpose):
 

@@ -6,10 +6,25 @@ overview lives in the top-level README.md.
 ## How it works
 
 - `app/dashboard.py` is a small local web server (Python standard library only).
-- It reads the CSV files in `data/` and renders five HTML pages.
+  Run it with `python3 app/dashboard.py` and open http://localhost:8000.
+- It reads the CSV files in `data/` and renders five HTML pages:
+  the main dashboard (/), daily progress (/daily), model comparison
+  (/models), the usage log (/usage), and the benchmark log (/benchmarks).
 - There is no database, no cloud service, and no live API connection.
-- To add data, edit the CSV files with any text editor or spreadsheet app,
-  then refresh the browser.
+
+## Adding data
+
+Three ways, all appending the same row format:
+
+1. **The form on each page.** The usage, benchmark, and daily pages have
+   an add-entry form below their table; the main dashboard has one for
+   next actions. Submit and the row is saved immediately.
+2. **The terminal helper.** Run `python3 app/add_entry.py`, pick which
+   log to add to (1-4), and answer one question per field. Pressing
+   Enter accepts the suggested default (today's date, the next priority
+   number). Fields marked optional can be left blank.
+3. **Edit the CSV files directly** with any text editor or spreadsheet
+   app, then refresh the browser.
 
 ## Data formats
 
@@ -76,8 +91,6 @@ Your running to-do list.
 ## Decisions made
 
 - CSV over JSON: easier to edit by hand and opens in any spreadsheet app.
-- One file per job: app/dashboard.py shows the data, app/add_entry.py
-  adds to it. Each reads top to bottom.
-- Three ways to add data: the form at the bottom of each dashboard
-  page, the terminal helper (`python3 app/add_entry.py`), or editing
-  the CSV files directly. All three append the same row format.
+- One file per job: app/dashboard.py shows the data (and handles the
+  add-entry forms), app/add_entry.py adds to it from the terminal.
+  Each reads top to bottom.
