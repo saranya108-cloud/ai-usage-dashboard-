@@ -1,0 +1,7 @@
+priority,action,status
+1,Chase the remaining flaky Orbit test,open
+2,Re-run the regex test on Qwen Coder Next,open
+3,Start the Orbit phase 2 outline,open
+4,Try a longer coding task on Ornith-1.0,open
+5,Write down the Acer GN100 local setup steps in docs,open
+6,Set up the ai-usage-dashboard repo,done

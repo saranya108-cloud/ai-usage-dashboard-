@@ -1,0 +1,8 @@
+date,category,note,next_action
+2026-06-24,completed,Set up the ai-usage-dashboard repo and wrote the README,Plan the file structure
+2026-06-25,tested,First local model tests on the Acer GN100 (Qwen and Ornith),Add a benchmark log
+2026-06-26,learned,GLM-5.2 cloud is fast at summaries but skips small details,Re-test with a stricter prompt
+2026-06-27,fixed,Regex explanation test now passes with Ornith-1.0,Try the same test on Qwen again
+2026-06-28,completed,Orbit phase 1 requirements written,Start Orbit phase 2 outline
+2026-06-29,fixed,Fixed a failing Orbit test in a Codex session,Chase the remaining flaky test
+2026-06-30,tested,Qwen Coder Next wrote good unit tests locally,Log the result in the benchmark log
